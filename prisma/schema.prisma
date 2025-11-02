@@ -1,0 +1,233 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ------------------
+// Core Structures
+// ------------------
+
+model Nation {
+  id      Int      @id @default(autoincrement())
+  name    String   @unique
+  leagues League[]
+  players Player[] // nationality reference
+}
+
+model Season {
+  id        Int      @id @default(autoincrement())
+  name      String   @unique
+  leagues   League[]
+  squads    SquadMembership[]
+  
+  @@map("seasons") // This tells Prisma to use the "seasons" table
+}
+
+model League {
+  id       Int     @id @default(autoincrement())
+  name     String  
+  nationId Int     
+  seasonId Int     
+  nation   Nation  @relation(fields: [nationId], references: [id])
+  season   Season  @relation(fields: [seasonId], references: [id])
+  clubs    Club[]
+  @@unique([name, nationId, seasonId])
+  @@map("leagues")
+}
+
+// ------------------
+// Clubs & Players
+// ------------------
+
+model Club {
+  id       Int      @id @default(autoincrement())
+  name     String
+  leagueId Int
+  league   League   @relation(fields: [leagueId], references: [id])
+  squads   SquadMembership[]
+  transfersFrom Transfer[] @relation("FromClub")
+  transfersTo   Transfer[] @relation("ToClub")
+}
+
+model Player {
+  id              Int      @id @default(autoincrement())
+  firstName       String
+  lastName        String
+  displayName     String?
+  dateOfBirth     DateTime?
+  birthPlace      String?
+  nationalityId   Int?
+  nationality     Nation?   @relation(fields: [nationalityId], references: [id])
+  age             Int?
+  currentMV       Float?
+  shirtNumber     Int?
+  transferDate    DateTime?
+  prevClub        String?
+  prevMV          Float?
+  transferFee     String?
+  status          String?
+  contractExpiry  DateTime?
+  heightCm        Int?
+  weightKg        Int?
+  position        String?
+  transfermarktId String?  @unique
+  
+  squads          SquadMembership[]
+  transfers       Transfer[]
+}
+
+// ------------------
+// Relationships
+// ------------------
+
+model SquadMembership {
+  id          Int     @id @default(autoincrement())
+  seasonId    Int
+  clubId      Int
+  playerId    Int
+  shirtNumber Int?
+
+  season   Season @relation(fields: [seasonId], references: [id])
+  club     Club   @relation(fields: [clubId], references: [id])
+  player   Player @relation(fields: [playerId], references: [id])
+
+  @@unique([seasonId, clubId, playerId])
+}
+
+model Transfer {
+  id          Int      @id @default(autoincrement())
+  playerId    Int
+  fromClubId  Int?
+  toClubId    Int?
+  date        DateTime
+  fee         String?   // “Free”, “Loan”, or value
+  marketValue Float?
+
+  player   Player @relation(fields: [playerId], references: [id])
+  fromClub Club?  @relation("FromClub", fields: [fromClubId], references: [id])
+  toClub   Club?  @relation("ToClub", fields: [toClubId], references: [id])
+}
+
+model MatchWeek {
+  id          Int      @id @default(autoincrement())
+  leagueId    Int
+  seasonId    Int
+  weekNumber  Int
+  fixtures    Fixture[]
+  @@unique([leagueId, seasonId, weekNumber])
+}
+
+model Fixture {
+  id              Int                @id @default(autoincrement())
+  leagueId        Int
+  seasonId        Int
+  weekNumber      Int
+  matchWeekId     Int
+  date            DateTime?
+  notes           String?
+  homeTeamId      Int
+  awayTeamId      Int
+  homeTeamName    String?
+  awayTeamName    String?
+  homeScore       Int?
+  awayScore       Int?
+  homeXg          Float?
+  awayXg          Float?
+  homeFormation   String?
+  awayFormation   String?
+  
+  matchWeek       MatchWeek          @relation(fields: [matchWeekId], references: [id], onDelete: Cascade)
+  matchStats      FixtureMatchStats?
+  events          MatchEvent[]
+}
+
+model FixtureMatchStats {
+  id                     Int      @id @default(autoincrement())
+  fixtureId              Int      @unique
+  notes                  String?
+  homePossession         Float?
+  awayPossession         Float?
+  homeXG                 Float?
+  awayXG                 Float?
+  homBbigChance          Int?
+  awayBigChance          Int?
+  homeShots              Int?
+  awayShots              Int?
+  homeSaves              Int?
+  awaySaves              Int?
+  homeCriticalSaves      Int?
+  awayCriticalSaves      Int?
+  homeGKPerf             Float?
+  awayGKPerf             Float?
+  homeCorners            Int?
+  awayCorners            Int?
+  homeFouls              Int?
+  awayFouls              Int?
+  homePasses             Int?
+  awayPasses             Int?
+  homeInterceptions      Int?
+  awayInterceptions      Int?
+  homeFKs                Int?
+  awayFKs                Int?
+  homeYellowCards        Int?
+  awayYellowCards        Int?
+  homeRedCards           Int?
+  awayRedCards           Int?
+  homePenaltyXG          Int?
+  awayPenaltyXG          Int?
+  homeshotsOnTarget      Int?
+  awayshotsOnTarget      Int?
+  homeShotPct            Int?
+  awayShotPct            Int?
+  homePosts              Int?
+  awayPosts              Int?
+  homeShotOffTarget      Int?
+  awayShotOffTarget      Int?
+  homeBlockedShots       Int?
+  awayBlockedShots       Int?
+  homeShotsInBox         Int?
+  awayShotsInBox         Int?
+  homeShotsInBoxPct      Int?
+  awayShotsInBoxPct      Int?
+  homeShotsOutBox        Int?
+  awayShotsOutBox        Int?
+  homeShotsOutBoxPct     Int?
+  awayShotsOutBoxPct     Int?
+  homeErrorToShot        Float?
+  awayErrorToShot        Float?
+  homeErrorToGoal        Float?
+  awayErrorToGoal        Float?
+
+  fixture Fixture @relation(fields: [fixtureId], references: [id])
+}
+
+model MatchEvent {
+  id              Int      @id @default(autoincrement())
+  fixtureId       Int
+  minute          Int?
+  minuteStr       String?
+  eventType       String?
+  teamId          Int?
+  playerId        Int?
+  teamName        String?
+  playerFirstName String?
+  playerLastName  String?
+  playerPos       String?
+  playerRating    Int?
+  shotArea        String?
+  shotType        String?
+  eventLeadUp     String?
+  xG              Float?
+  xGOT            Float?
+  bigChance       Boolean?
+  outcome         String?
+  score           String?
+  aPlayerFN       String?
+  aPlayerLN       String?
+
+  fixture Fixture @relation(fields: [fixtureId], references: [id], onDelete: Cascade)
+}
