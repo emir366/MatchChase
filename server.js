@@ -13,12 +13,14 @@ const fixtureRouter = require('./routes/fixture');
 
 const app = express();
 // replace app.use(cors());
+app.use(cors());
+/*
 const allowedOrigins = [
   'http://localhost:3000',            // local dev
   'http://127.0.0.1:3000',
   'https://indigo-chicken-577243.hostingersite.com/'  // <- replace with your Hostinger domain
-];
-
+];*/
+/*
 app.use(cors({
   origin: function(origin, callback){
     // allow requests with no origin (mobile apps, curl)
@@ -31,7 +33,7 @@ app.use(cors({
   },
   credentials: true
 }));
-
+*/
 app.use(bodyParser.json());
 
 // Mount routes
