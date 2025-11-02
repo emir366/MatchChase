@@ -12,7 +12,26 @@ const fixturesRouter = require('./routes/fixtures');
 const fixtureRouter = require('./routes/fixture');
 
 const app = express();
-app.use(cors());
+// replace app.use(cors());
+const allowedOrigins = [
+  'http://localhost:3000',            // local dev
+  'http://127.0.0.1:3000',
+  'https://indigo-chicken-577243.hostingersite.com/'  // <- replace with your Hostinger domain
+];
+
+app.use(cors({
+  origin: function(origin, callback){
+    // allow requests with no origin (mobile apps, curl)
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.indexOf(origin) === -1) {
+      const msg = 'The CORS policy for this site does not allow access from the specified Origin.';
+      return callback(new Error(msg), false);
+    }
+    return callback(null, true);
+  },
+  credentials: true
+}));
+
 app.use(bodyParser.json());
 
 // Mount routes
