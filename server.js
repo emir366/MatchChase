@@ -13,7 +13,7 @@ const fixtureRouter = require('./routes/fixture');
 
 const app = express();
 // replace app.use(cors());
-app.use(cors());
+app.use(cors({ origin: true, credentials: true }));
 /*
 const allowedOrigins = [
   'http://localhost:3000',            // local dev
