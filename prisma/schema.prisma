@@ -143,6 +143,7 @@ model Fixture {
   matchWeek       MatchWeek          @relation(fields: [matchWeekId], references: [id], onDelete: Cascade)
   matchStats      FixtureMatchStats?
   events          MatchEvent[]
+  gkStats         GkPerf?          
 }
 
 model FixtureMatchStats {
@@ -229,5 +230,18 @@ model MatchEvent {
   aPlayerFN       String?
   aPlayerLN       String?
 
+  fixture Fixture @relation(fields: [fixtureId], references: [id], onDelete: Cascade)
+}
+
+model GkPerf {
+  id              Int      @id @default(autoincrement())
+  fixtureId       Int      @unique
+  homeGkName      String?
+  awayGkName      String?
+  homeGkRating    Int?
+  awayGkRating    Int?
+  homeGkSaves     Int?
+  awayGkSaves     Int?
+  
   fixture Fixture @relation(fields: [fixtureId], references: [id], onDelete: Cascade)
 }

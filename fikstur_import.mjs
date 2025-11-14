@@ -5,6 +5,7 @@ import XLSX from 'xlsx';
 import minimist from 'minimist';
 import fs from 'fs';
 import path from 'path';
+import { bool } from 'joi';
 
 const argv = minimist(process.argv.slice(2), { boolean: ['dryRun'], alias: { d: 'dryRun' } });
 const FILE = argv.file || argv._[0] || '10.HaftaFikstür.xlsx';
@@ -17,6 +18,7 @@ const CLUB_MODEL_NAME = 'club';        // <-- ensure this matches your Prisma cl
 const FIXTURE_MODEL_NAME = 'fixture';
 const MATCHWEEK_MODEL_NAME = 'matchWeek';
 const EVENT_MODEL_NAME = 'matchEvent';
+const GK_MODEL_NAME = 'GkPerf';
 
 if (!LEAGUE_ID || !SEASON_ID) {
   console.error('Usage: node fikstur_import_simple.mjs --file="/path/file.xlsx" --leagueId=14 --seasonId=7 [--dryRun]');
@@ -124,6 +126,7 @@ const clubClient = prisma[CLUB_MODEL_NAME];
 const fixtureClient = prisma[FIXTURE_MODEL_NAME];
 const matchWeekClient = prisma[MATCHWEEK_MODEL_NAME];
 const eventClient = prisma[EVENT_MODEL_NAME];
+const gkStatClient = prisma[GK_MODEL_NAME];
 
 if (!clubClient || !fixtureClient || !eventClient) {
   console.error('Prisma client does not expose expected models. Check CLUB_MODEL_NAME/FIXTURE_MODEL_NAME/EVENT_MODEL_NAME.');
@@ -158,7 +161,13 @@ async function main() {
   const unresolved = [];
   let eventsInserted = 0;
 
+  let skip = false;
+
   for (let i = 0; i < rows.length; i++) {
+    if (skip) {
+      skip = false;
+      continue;
+    } 
     const row = rows[i];
     try {
       const homeName = row[COL.homeName];
@@ -236,43 +245,60 @@ async function main() {
   }
 
 // now fixtureId is available and reused for later event rows
-
-      // event payload
-      const eventPayload = {
-        fixtureId,
-        minute: parseIntSafe(row[COL.minute]),
-        minuteStr: String(row[COL.minute]),
-        teamName: row[COL.team] ?? null,
-        playerFirstName: row[COL.playerFN] || '',
-        playerLastName: row[COL.playerLN] || '',
-        playerPos: row[COL.playerPos] ?? null,
-        playerRating: parseNumber(row[COL.playerRating]),
-        shotArea: row[COL.shotArea] ?? null,
-        shotType: row[COL.shotType] ?? null,
-        eventLeadUp: row[COL.leadUp] ?? null,
-        xG: parseNumber(row[COL.xG]),
-        xGOT: parseNumber(row[COL.xGOT]),
-        bigChance: parseBoolNonEmpty(row[COL.bigChance]),
-        outcome: row[COL.outcome] ?? null,
-        score: row[COL.scoreAtShot] ?? null,
-        aPlayerFN: row[COL.assistFN] || '',
-        aPlayerLN: row[COL.assistLN] || '',
-      };
+      if (parseIntSafe(row[COL.minute]) == null) {
+        const next_row = rows[i + 1];
+        skip = true;
+        const gkStats = {
+          fixtureId,
+          homeGkName: row[COL.playerFN] || '',
+          awayGkName: next_row[COL.playerFN] || '',
+          homeGkRating: parseNumber(row[COL.playerRating]),
+          awayGkRating: parseNumber(next_row[COL.playerRating]),
+          homeGkSaves: parseNumber(row[COL.bigChance]),
+          awayGkSaves: parseNumber(next_row[COL.bigChance]),
+        }
+        if (!DRY_RUN) {
+          await gkStatClient.create({ data: gkStats });
+        }
+      } 
+      else {
+        // event payload
+        const eventPayload = {
+          fixtureId,
+          minute: parseIntSafe(row[COL.minute]),
+          minuteStr: String(row[COL.minute]),
+          teamName: row[COL.team] ?? null,
+          playerFirstName: row[COL.playerFN] || '',
+          playerLastName: row[COL.playerLN] || '',
+          playerPos: row[COL.playerPos] ?? null,
+          playerRating: parseNumber(row[COL.playerRating]),
+          shotArea: row[COL.shotArea] ?? null,
+          shotType: row[COL.shotType] ?? null,
+          eventLeadUp: row[COL.leadUp] ?? null,
+          xG: parseNumber(row[COL.xG]),
+          xGOT: parseNumber(row[COL.xGOT]),
+          bigChance: parseBoolNonEmpty(row[COL.bigChance]),
+          outcome: row[COL.outcome] ?? null,
+          score: row[COL.scoreAtShot] ?? null,
+          aPlayerFN: row[COL.assistFN] || '',
+          aPlayerLN: row[COL.assistLN] || '',
+        };
 /*
       // debug: print first 5 planned inserts
       if (i < 15) {
         console.log('DEBUG planned event payload (row', i+1, '):', JSON.stringify(eventPayload, null, 2));
       }
 */
-      if (!DRY_RUN) {
-        await eventClient.create({ data: eventPayload });
+        if (!DRY_RUN) {
+          await eventClient.create({ data: eventPayload });
+        }
+        eventsInserted++;
       }
-      eventsInserted++;
 
-    } catch (err) {
-      console.error('Row', i+1, 'error:', err && err.message ? err.message : err);
+      } catch (err) {
+        console.error('Row', i+1, 'error:', err && err.message ? err.message : err);
+      }
     }
-  }
 
   if (unresolved.length) {
     fs.writeFileSync('unresolved_teams.json', JSON.stringify(unresolved, null, 2), 'utf-8');
