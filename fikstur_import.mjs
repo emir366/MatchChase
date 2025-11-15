@@ -4,8 +4,7 @@ import { PrismaClient } from '@prisma/client';
 import XLSX from 'xlsx';
 import minimist from 'minimist';
 import fs from 'fs';
-import path from 'path';
-import { bool } from 'joi';
+
 
 const argv = minimist(process.argv.slice(2), { boolean: ['dryRun'], alias: { d: 'dryRun' } });
 const FILE = argv.file || argv._[0] || '10.HaftaFikstür.xlsx';
