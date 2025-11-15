@@ -231,6 +231,7 @@ model MatchEvent {
   aPlayerLN       String?
 
   fixture Fixture @relation(fields: [fixtureId], references: [id], onDelete: Cascade)
+  @@unique([fixtureId, minuteStr, xG])
 }
 
 model GkPerf {

@@ -258,7 +258,15 @@ async function main() {
           awayGkSaves: parseNumber(next_row[COL.bigChance]),
         }
         if (!DRY_RUN) {
-          await gkStatClient.create({ data: gkStats });
+          try {
+            await gkStatClient.create({ data: gkStats });
+          } catch (err) {
+            if (err.code === 'P2002' /* Prisma duplicate error */) {
+              console.log(`Duplicate event skipped (fixture ${fixtureId}, row ${i+1})`);
+            } else {
+              throw err;
+            }
+          }
         }
       } 
       else {
@@ -290,7 +298,15 @@ async function main() {
       }
 */
         if (!DRY_RUN) {
-          await eventClient.create({ data: eventPayload });
+          try {
+            await eventClient.create({ data: eventPayload });
+          } catch (err) {
+            if (err.code === 'P2002' /* Prisma duplicate error */) {
+              console.log(`Duplicate event skipped (fixture ${fixtureId}, row ${i+1})`);
+            } else {
+              throw err;
+            }
+          }
         }
         eventsInserted++;
       }
