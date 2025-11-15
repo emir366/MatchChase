@@ -77,7 +77,7 @@ router.get('/:fixtureId/events', async (req, res) => {
 router.get('/:fixtureId/gkperf', async (req, res) => {
   const { fixtureId } = req.params;
   try {
-    const gkPerf = await prisma.matchEvent.findUnique({
+    const gkPerf = await prisma.matchEvent.findMany({
       where: { fixtureId: Number(fixtureId) },
       select: {
         id: true,
