@@ -10,7 +10,6 @@ const seasonsRouter = require('./routes/seasons');
 const transfersRouter = require('./routes/transfers');
 const fixturesRouter = require('./routes/fixtures');
 const fixtureRouter = require('./routes/fixture');
-const gkRouter = require('./routes/gkPerf');
 
 const app = express();
 // replace app.use(cors());
@@ -46,7 +45,6 @@ app.use('/seasons', seasonsRouter);
 app.use('/transfers', transfersRouter);
 app.use('/api/fixtures', fixturesRouter);
 app.use('/api/fixture', fixtureRouter);
-app.use('/api/fixture', gkRouter);
 
 // Add a root route for testing
 app.get('/', (req, res) => {

@@ -73,4 +73,29 @@ router.get('/:fixtureId/events', async (req, res) => {
   }
 });
 
+// GET /api/fixture/:fixtureId/gkperf
+router.get('/:fixtureId/gkperf', async (req, res) => {
+  const { fixtureId } = req.params;
+  try {
+    const gkPerf = await prisma.matchEvent.findUnique({
+      where: { fixtureId: Number(fixtureId) },
+      select: {
+        id: true,
+        homeGkFn: true,
+        homeGkLn: true,
+        awayGkFn: true,
+        awayGkLn: true,
+        homeGkRating: true,
+        awayGkRating: true,
+        homeGkSaves: true,
+        awayGkSaves: true,
+      }
+    });
+    return res.json(gkPerf);
+  } catch (err) {
+    console.error('GET fixture gkperf error', err);
+    return res.status(500).json({ error: 'Server error' });
+  }
+});
+
 module.exports = router;
