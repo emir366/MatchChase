@@ -249,8 +249,10 @@ async function main() {
         skip = true;
         const gkStats = {
           fixtureId,
-          homeGkName: row[COL.playerFN] || '',
-          awayGkName: next_row[COL.playerFN] || '',
+          homeGkFn: row[COL.playerFN] || '',
+          homeGkLn: row[COL.playerLN] || '',
+          awayGkFn: next_row[COL.playerFN] || '',
+          awayGkLn: next_row[COL.playerLN] || '',
           homeGkRating: parseNumber(row[COL.playerRating]),
           awayGkRating: parseNumber(next_row[COL.playerRating]),
           homeGkSaves: parseNumber(row[COL.bigChance]),

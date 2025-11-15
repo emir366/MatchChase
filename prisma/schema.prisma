@@ -237,8 +237,10 @@ model MatchEvent {
 model GkPerf {
   id              Int      @id @default(autoincrement())
   fixtureId       Int      @unique
-  homeGkName      String?
-  awayGkName      String?
+  homeGkFn        String?
+  homeGkLn        String?
+  awayGkFn        String?
+  awayGkLn        String?
   homeGkRating    Int?
   awayGkRating    Int?
   homeGkSaves     Int?
