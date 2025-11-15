@@ -8,6 +8,7 @@ const prisma = new PrismaClient();
 router.get('/:fixtureId/gkperf', async (req, res) => {
   try {
     const { fixtureId } = req.params;
+    console.log(`Fetching GK performance for fixture: ${fixtureId}`);
 
     const gkPerf = await prisma.gkPerf.findUnique({
       where: {
@@ -16,9 +17,11 @@ router.get('/:fixtureId/gkperf', async (req, res) => {
     });
 
     if (!gkPerf) {
+      console.log(`No GK performance found for fixture: ${fixtureId}`);
       return res.status(404).json({ error: 'Goalkeeper performance data not found for this fixture' });
     }
 
+    console.log(`Found GK performance for fixture: ${fixtureId}`);
     res.json(gkPerf);
   } catch (error) {
     console.error('Error fetching goalkeeper performance:', error);
@@ -26,7 +29,7 @@ router.get('/:fixtureId/gkperf', async (req, res) => {
   }
 });
 
-// GET all goalkeeper performances (optional - for admin purposes)
+// GET all goalkeeper performances
 router.get('/', async (req, res) => {
   try {
     const gkPerfs = await prisma.gkPerf.findMany({
@@ -75,15 +78,6 @@ router.post('/', async (req, res) => {
       return res.status(404).json({ error: 'Fixture not found' });
     }
 
-    // Check if goalkeeper performance already exists for this fixture
-    const existingGkPerf = await prisma.gkPerf.findUnique({
-      where: { fixtureId: parseInt(fixtureId) },
-    });
-
-    if (existingGkPerf) {
-      return res.status(400).json({ error: 'Goalkeeper performance data already exists for this fixture' });
-    }
-
     const newGkPerf = await prisma.gkPerf.create({
       data: {
         fixtureId: parseInt(fixtureId),
@@ -101,67 +95,8 @@ router.post('/', async (req, res) => {
     res.status(201).json(newGkPerf);
   } catch (error) {
     console.error('Error creating goalkeeper performance:', error);
-    res.status(500).json({ error: 'Internal server error' });
-  }
-});
-
-// UPDATE goalkeeper performance
-router.put('/:fixtureId', async (req, res) => {
-  try {
-    const { fixtureId } = req.params;
-    const {
-      homeGkFn,
-      homeGkLn,
-      awayGkFn,
-      awayGkLn,
-      homeGkRating,
-      awayGkRating,
-      homeGkSaves,
-      awayGkSaves,
-    } = req.body;
-
-    const updatedGkPerf = await prisma.gkPerf.update({
-      where: {
-        fixtureId: parseInt(fixtureId),
-      },
-      data: {
-        homeGkFn,
-        homeGkLn,
-        awayGkFn,
-        awayGkLn,
-        homeGkRating: homeGkRating ? parseInt(homeGkRating) : null,
-        awayGkRating: awayGkRating ? parseInt(awayGkRating) : null,
-        homeGkSaves: homeGkSaves ? parseInt(homeGkSaves) : null,
-        awayGkSaves: awayGkSaves ? parseInt(awayGkSaves) : null,
-      },
-    });
-
-    res.json(updatedGkPerf);
-  } catch (error) {
-    console.error('Error updating goalkeeper performance:', error);
-    if (error.code === 'P2025') {
-      return res.status(404).json({ error: 'Goalkeeper performance data not found' });
-    }
-    res.status(500).json({ error: 'Internal server error' });
-  }
-});
-
-// DELETE goalkeeper performance
-router.delete('/:fixtureId', async (req, res) => {
-  try {
-    const { fixtureId } = req.params;
-
-    await prisma.gkPerf.delete({
-      where: {
-        fixtureId: parseInt(fixtureId),
-      },
-    });
-
-    res.status(204).send();
-  } catch (error) {
-    console.error('Error deleting goalkeeper performance:', error);
-    if (error.code === 'P2025') {
-      return res.status(404).json({ error: 'Goalkeeper performance data not found' });
+    if (error.code === 'P2002') {
+      return res.status(400).json({ error: 'Goalkeeper performance data already exists for this fixture' });
     }
     res.status(500).json({ error: 'Internal server error' });
   }

@@ -10,7 +10,7 @@ const seasonsRouter = require('./routes/seasons');
 const transfersRouter = require('./routes/transfers');
 const fixturesRouter = require('./routes/fixtures');
 const fixtureRouter = require('./routes/fixture');
-const gkPerfRouter = require('./routes/gkPerf');
+const gkPerfRouter = require('./routes/gkperf');
 
 const app = express();
 // replace app.use(cors());
