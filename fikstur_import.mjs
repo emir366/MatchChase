@@ -244,7 +244,7 @@ async function main() {
   }
 
 // now fixtureId is available and reused for later event rows
-      if (parseIntSafe(row[COL.minute]) == null) {
+      if (row[COL.minute] == null) {
         const next_row = rows[i + 1];
         skip = true;
         const gkStats = {
