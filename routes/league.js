@@ -6,7 +6,7 @@ const prisma = new PrismaClient();
 
 router.get('/', async (req, res) => {
   try {
-    const leagues = await prisma.league.findMany({
+    const league = await prisma.league.findMany({
       include: {
         nation: true,
         leagueSeasons: {
@@ -21,7 +21,7 @@ router.get('/', async (req, res) => {
       orderBy: { name: 'asc' } // optional: alphabetical leagues
     });
 
-    return res.json(leagues);
+    return res.json(league);
   } catch (err) {
     console.error('GET /api/leagues error', err);
     return res.status(500).json({ error: 'Failed to fetch leagues' });

@@ -4,7 +4,7 @@ const bodyParser = require('body-parser');
 const PORT = process.env.PORT ? Number(process.env.PORT) : 4000;
 
 const nationsRouter = require('./routes/nations');
-const leaguesRouter = require('./routes/leagues');
+const leagueRouter = require('./routes/league');
 const clubsRouter = require('./routes/clubs');
 const playersRouter = require('./routes/players');
 const seasonsRouter = require('./routes/seasons');
@@ -12,7 +12,7 @@ const transfersRouter = require('./routes/transfers');
 const fixturesRouter = require('./routes/fixtures');
 const fixtureRouter = require('./routes/fixture');
 const leagueSeasonsRouter = require('./routes/leagueseasons')
-const clubSeasonsRouter = require('./routes/clubseasons');
+//const clubSeasonsRouter = require('./routes/clubseasons');
 
 const app = express();
 // replace app.use(cors());
@@ -41,7 +41,7 @@ app.use(bodyParser.json());
 
 // Mount routes
 app.use('/nations', nationsRouter);
-app.use('/leagues', leaguesRouter);  // This should handle /leagues/groups/all
+app.use('/api/league', leagueRouter);  
 app.use('/clubs', clubsRouter);
 app.use('/players', playersRouter);
 app.use('/seasons', seasonsRouter);
@@ -49,7 +49,7 @@ app.use('/transfers', transfersRouter);
 app.use('/api/fixtures', fixturesRouter);
 app.use('/api/fixture', fixtureRouter);
 app.use('/leagueseasons', leagueSeasonsRouter);
-app.use('/clubseasons', clubSeasonsRouter);
+//app.use('/clubseasons', clubSeasonsRouter);
 
 app.listen(PORT, () => {
   console.log(`Server listening on port ${PORT}`);
