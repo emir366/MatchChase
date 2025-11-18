@@ -7,61 +7,97 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// ------------------
-// Core Structures
-// ------------------
+model ExternalIdentifier {
+  id         Int      @id @default(autoincrement())
+  provider   String
+  providerId String
+  entityType String
+  entityId   Int?
+  entityKey  String?
+  url        String?
+  meta       Json?
+  lastSynced DateTime?
+
+  @@unique([provider, providerId])
+  @@index([entityType, entityId])
+}
 
 model Nation {
-  id      Int      @id @default(autoincrement())
-  name    String   @unique
-  leagues League[]
-  players Player[] // nationality reference
+  id      Int     @id @default(autoincrement())
+  name    String  @unique
+
+  Leagues League[]
+  Clubs   Club[]       // optional link if you model a nation team as a Club
+  Players Player[]
 }
 
 model Season {
-  id        Int      @id @default(autoincrement())
-  name      String   @unique
-  leagues   League[]
-  squads    SquadMembership[]
-  
-  @@map("seasons") // This tells Prisma to use the "seasons" table
+  id           Int             @id @default(autoincrement())
+  name         String          @unique
+  LeagueSeasons LeagueSeason[]
+
+  @@map("seasons")
 }
 
 model League {
-  id       Int     @id @default(autoincrement())
-  name     String  
-  nationId Int     
-  seasonId Int     
-  nation   Nation  @relation(fields: [nationId], references: [id])
-  season   Season  @relation(fields: [seasonId], references: [id])
-  clubs    Club[]
-  @@unique([name, nationId, seasonId])
-  @@map("leagues")
+  id         Int            @id @default(autoincrement())
+  name       String
+  nationId   Int
+  externalId String?        @unique
+
+  nation      Nation       @relation(fields: [nationId], references: [id])
+  leagueSeasons LeagueSeason[]
 }
 
-// ------------------
-// Clubs & Players
-// ------------------
+model LeagueSeason {
+  id            Int       @id @default(autoincrement())
+  leagueId      Int
+  seasonId      Int
+  externalId    String?   @unique
+
+  league        League    @relation(fields: [leagueId], references: [id])
+  season        Season    @relation(fields: [seasonId], references: [id])
+  clubSeasons   ClubSeason[]
+  matchWeeks    MatchWeek[]
+  fixtures      Fixture[]
+
+  @@unique([leagueId, seasonId])
+}
 
 model Club {
-  id       Int      @id @default(autoincrement())
-  name     String
-  leagueId Int
-  league   League   @relation(fields: [leagueId], references: [id])
-  squads   SquadMembership[]
-  transfersFrom Transfer[] @relation("FromClub")
-  transfersTo   Transfer[] @relation("ToClub")
+  id         Int         @id @default(autoincrement())
+  name       String
+  nationId   Int
+  externalId String?     @unique
+
+  nation      Nation     @relation(fields: [nationId], references: [id])
+  clubSeasons ClubSeason[]
+}
+
+model ClubSeason {
+  id             Int       @id @default(autoincrement())
+  clubId         Int
+  leagueSeasonId Int
+
+  club           Club       @relation(fields: [clubId], references: [id])
+  leagueSeason   LeagueSeason @relation(fields: [leagueSeasonId], references: [id])
+  squads         SquadMembership[]
+  fixturesHome   Fixture[]  @relation("FixtureHome")
+  fixturesAway   Fixture[]  @relation("FixtureAway")
+  transfersFrom  Transfer[] @relation("FromClubSeason")
+  transfersTo    Transfer[] @relation("ToClubSeason")
+
+  @@unique([clubId, leagueSeasonId])
 }
 
 model Player {
-  id              Int      @id @default(autoincrement())
+  id              Int       @id @default(autoincrement())
   firstName       String
   lastName        String
   displayName     String?
   dateOfBirth     DateTime?
   birthPlace      String?
   nationalityId   Int?
-  nationality     Nation?   @relation(fields: [nationalityId], references: [id])
   age             Int?
   currentMV       Float?
   shirtNumber     Int?
@@ -74,63 +110,61 @@ model Player {
   heightCm        Int?
   weightKg        Int?
   position        String?
-  transfermarktId String?  @unique
-  
+  transfermarktId String?   @unique
+  externalId      String?   @unique
+
+  nationality     Nation?   @relation(fields: [nationalityId], references: [id])
   squads          SquadMembership[]
   transfers       Transfer[]
 }
 
-// ------------------
-// Relationships
-// ------------------
-
 model SquadMembership {
-  id          Int     @id @default(autoincrement())
-  seasonId    Int
-  clubId      Int
-  playerId    Int
-  shirtNumber Int?
+  id            Int       @id @default(autoincrement())
+  clubSeasonId  Int
+  playerId      Int
+  shirtNumber   Int?
 
-  season   Season @relation(fields: [seasonId], references: [id])
-  club     Club   @relation(fields: [clubId], references: [id])
-  player   Player @relation(fields: [playerId], references: [id])
+  clubSeason    ClubSeason @relation(fields: [clubSeasonId], references: [id])
+  player        Player     @relation(fields: [playerId], references: [id])
 
-  @@unique([seasonId, clubId, playerId])
+  @@unique([clubSeasonId, playerId])
 }
 
 model Transfer {
-  id          Int      @id @default(autoincrement())
-  playerId    Int
-  fromClubId  Int?
-  toClubId    Int?
-  date        DateTime
-  fee         String?   // “Free”, “Loan”, or value
-  marketValue Float?
+  id               Int       @id @default(autoincrement())
+  playerId         Int
+  fromClubSeasonId Int?
+  toClubSeasonId   Int?
+  date             DateTime
+  fee              String?
+  marketValue      Float?
 
-  player   Player @relation(fields: [playerId], references: [id])
-  fromClub Club?  @relation("FromClub", fields: [fromClubId], references: [id])
-  toClub   Club?  @relation("ToClub", fields: [toClubId], references: [id])
+  player           Player     @relation(fields: [playerId], references: [id])
+  fromClubSeason   ClubSeason? @relation("FromClubSeason", fields: [fromClubSeasonId], references: [id])
+  toClubSeason     ClubSeason? @relation("ToClubSeason", fields: [toClubSeasonId], references: [id])
+
+  @@unique([playerId, toClubSeasonId, date])
 }
 
 model MatchWeek {
-  id          Int      @id @default(autoincrement())
-  leagueId    Int
-  seasonId    Int
-  weekNumber  Int
-  fixtures    Fixture[]
-  @@unique([leagueId, seasonId, weekNumber])
+  id             Int        @id @default(autoincrement())
+  leagueSeasonId Int
+  weekNumber     Int
+  fixtures       Fixture[]
+  leagueSeason   LeagueSeason @relation(fields: [leagueSeasonId], references: [id])
+
+  @@unique([leagueSeasonId, weekNumber])
 }
 
 model Fixture {
-  id              Int                @id @default(autoincrement())
-  leagueId        Int
-  seasonId        Int
-  weekNumber      Int
-  matchWeekId     Int
+  id              Int        @id @default(autoincrement())
+  leagueSeasonId  Int
+  weekNumber      Int?
+  matchWeekId     Int?
   date            DateTime?
   notes           String?
-  homeTeamId      Int
-  awayTeamId      Int
+  homeClubSeasonId Int
+  awayClubSeasonId Int
   homeTeamName    String?
   awayTeamName    String?
   homeScore       Int?
@@ -139,69 +173,72 @@ model Fixture {
   awayXg          Float?
   homeFormation   String?
   awayFormation   String?
-  
-  matchWeek       MatchWeek          @relation(fields: [matchWeekId], references: [id], onDelete: Cascade)
+
+  leagueSeason    LeagueSeason @relation(fields: [leagueSeasonId], references: [id])
+  matchWeek       MatchWeek?   @relation(fields: [matchWeekId], references: [id], onDelete: Cascade)
+  homeClubSeason  ClubSeason   @relation("FixtureHome", fields: [homeClubSeasonId], references: [id])
+  awayClubSeason  ClubSeason   @relation("FixtureAway", fields: [awayClubSeasonId], references: [id])
   matchStats      FixtureMatchStats?
   events          MatchEvent[]
-  gkperf          GkPerf?          
+  gkPerf          GkPerf?
 }
 
 model FixtureMatchStats {
-  id                     Int      @id @default(autoincrement())
-  fixtureId              Int      @unique
-  notes                  String?
-  homePossession         Float?
-  awayPossession         Float?
-  homeXG                 Float?
-  awayXG                 Float?
-  homBbigChance          Int?
-  awayBigChance          Int?
-  homeShots              Int?
-  awayShots              Int?
-  homeSaves              Int?
-  awaySaves              Int?
-  homeCriticalSaves      Int?
-  awayCriticalSaves      Int?
-  homeGKPerf             Float?
-  awayGKPerf             Float?
-  homeCorners            Int?
-  awayCorners            Int?
-  homeFouls              Int?
-  awayFouls              Int?
-  homePasses             Int?
-  awayPasses             Int?
-  homeInterceptions      Int?
-  awayInterceptions      Int?
-  homeFKs                Int?
-  awayFKs                Int?
-  homeYellowCards        Int?
-  awayYellowCards        Int?
-  homeRedCards           Int?
-  awayRedCards           Int?
-  homePenaltyXG          Int?
-  awayPenaltyXG          Int?
-  homeshotsOnTarget      Int?
-  awayshotsOnTarget      Int?
-  homeShotPct            Int?
-  awayShotPct            Int?
-  homePosts              Int?
-  awayPosts              Int?
-  homeShotOffTarget      Int?
-  awayShotOffTarget      Int?
-  homeBlockedShots       Int?
-  awayBlockedShots       Int?
-  homeShotsInBox         Int?
-  awayShotsInBox         Int?
-  homeShotsInBoxPct      Int?
-  awayShotsInBoxPct      Int?
-  homeShotsOutBox        Int?
-  awayShotsOutBox        Int?
-  homeShotsOutBoxPct     Int?
-  awayShotsOutBoxPct     Int?
-  homeErrorToShot        Float?
-  awayErrorToShot        Float?
-  homeErrorToGoal        Float?
-  awayErrorToGoal        Float?
+  id                Int     @id @default(autoincrement())
+  fixtureId         Int     @unique
+  notes             String?
+  homePossession    Float?
+  awayPossession    Float?
+  homeXG            Float?
+  awayXG            Float?
+  homeBigChance     Int?
+  awayBigChance     Int?
+  homeShots         Int?
+  awayShots         Int?
+  homeSaves         Int?
+  awaySaves         Int?
+  homeCriticalSaves Int?
+  awayCriticalSaves Int?
+  homeGKPerf        Float?
+  awayGKPerf        Float?
+  homeCorners       Int?
+  awayCorners       Int?
+  homeFouls         Int?
+  awayFouls         Int?
+  homePasses        Int?
+  awayPasses        Int?
+  homeInterceptions Int?
+  awayInterceptions Int?
+  homeFKs           Int?
+  awayFKs           Int?
+  homeYellowCards   Int?
+  awayYellowCards   Int?
+  homeRedCards      Int?
+  awayRedCards      Int?
+  homePenaltyXG     Int?
+  awayPenaltyXG     Int?
+  homeshotsOnTarget Int?
+  awayshotsOnTarget Int?
+  homeShotPct       Int?
+  awayShotPct       Int?
+  homePosts         Int?
+  awayPosts         Int?
+  homeShotOffTarget Int?
+  awayShotOffTarget Int?
+  homeBlockedShots  Int?
+  awayBlockedShots  Int?
+  homeShotsInBox    Int?
+  awayShotsInBox    Int?
+  homeShotsInBoxPct Int?
+  awayShotsInBoxPct Int?
+  homeShotsOutBox   Int?
+  awayShotsOutBox   Int?
+  homeShotsOutBoxPct Int?
+  awayShotsOutBoxPct Int?
+  homeErrorToShot   Float?
+  awayErrorToShot   Float?
+  homeErrorToGoal   Float?
+  awayErrorToGoal   Float?
 
   fixture Fixture @relation(fields: [fixtureId], references: [id])
 }
@@ -231,20 +268,21 @@ model MatchEvent {
   aPlayerLN       String?
 
   fixture Fixture @relation(fields: [fixtureId], references: [id], onDelete: Cascade)
-  @@unique([fixtureId, minuteStr, xG])
+  @@unique([fixtureId, minuteStr, teamId, playerId, shotArea, shotType, eventLeadUp, xG, outcome])
 }
 
 model GkPerf {
-  id              Int      @id @default(autoincrement())
-  fixtureId       Int      @unique
-  homeGkFn        String?
-  homeGkLn        String?
-  awayGkFn        String?
-  awayGkLn        String?
-  homeGkRating    Int?
-  awayGkRating    Int?
-  homeGkSaves     Int?
-  awayGkSaves     Int?
-  
+  id           Int   @id @default(autoincrement())
+  fixtureId    Int   @unique
+  homeGkFn     String?
+  homeGkLn     String?
+  awayGkFn     String?
+  awayGkLn     String?
+  homeGkRating Int?
+  awayGkRating Int?
+  homeGkSaves  Int?
+  awayGkSaves  Int?
+
   fixture Fixture @relation(fields: [fixtureId], references: [id], onDelete: Cascade)
 }
+
