@@ -22,17 +22,29 @@ router.get('/', asyncHandler(async (req, res) => {
   res.json(leagues);
 }));
 
-// Get a specific LeagueSeason (e.g., Premier League 23/24 context)
+// Get a specific LeagueSeason context (Detailed View)
 router.get('/season/:id', asyncHandler(async (req, res) => {
   const { id } = req.params;
+  
   const leagueSeason = await prisma.leagueSeason.findUnique({
     where: { id: parseInt(id) },
     include: {
-      league: true,
+      // VITAL: Include League -> LeagueSeasons -> Season for the selector
+      league: {
+        include: {
+          nation: true,
+          leagueSeasons: {
+            include: { season: true }
+          }
+        }
+      },
       season: true,
+      // Include Clubs in this season
       clubSeasons: {
         include: {
-          club: true
+          club: {
+            include: { nation: true }
+          }
         }
       }
     }

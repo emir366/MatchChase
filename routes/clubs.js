@@ -47,6 +47,39 @@ router.get('/:id', asyncHandler(async (req, res) => {
   res.json(club);
 }));
 
+// Used for the Club Dashboard to show the season selector
+router.get('/season/:id', asyncHandler(async (req, res) => {
+  const { id } = req.params; // This is the clubSeasonId
+
+  const clubSeason = await prisma.clubSeason.findUnique({
+    where: { id: parseInt(id) },
+    include: {
+      // 1. Context for this specific season
+      leagueSeason: {
+        include: { season: true, league: true }
+      },
+      // 2. Parent Club info + Sibling Seasons (for the selector)
+      club: {
+        include: {
+          nation: true,
+          clubSeasons: {
+            include: {
+              leagueSeason: { include: { season: true } }
+            },
+            orderBy: { leagueSeason: { season: { name: 'desc' } } }
+          }
+        }
+      }
+    }
+  });
+
+  if (!clubSeason) {
+    return res.status(404).json({ error: 'Club Season context not found' });
+  }
+
+  res.json(clubSeason);
+}));
+
 // Get a Club's Squad for a specific Season context (ClubSeason)
 router.get('/season/:id/squad', asyncHandler(async (req, res) => {
   const { id } = req.params; 
