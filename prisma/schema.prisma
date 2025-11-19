@@ -98,7 +98,6 @@ model Player {
   dateOfBirth     DateTime?
   birthPlace      String?
   nationalityId   Int?
-  age             Int?
   currentMV       Float?
   shirtNumber     Int?
   transferDate    DateTime?
@@ -136,7 +135,8 @@ model Transfer {
   fromClubSeasonId Int?
   toClubSeasonId   Int?
   date             DateTime
-  fee              String?
+  transferType     String?
+  fee              Float?
   marketValue      Float?
 
   player           Player     @relation(fields: [playerId], references: [id])
@@ -215,8 +215,8 @@ model FixtureMatchStats {
   awayYellowCards   Int?
   homeRedCards      Int?
   awayRedCards      Int?
-  homePenaltyXG     Int?
-  awayPenaltyXG     Int?
+  homePenaltyXG     Float?
+  awayPenaltyXG     Float?
   homeshotsOnTarget Int?
   awayshotsOnTarget Int?
   homeShotPct       Int?
@@ -268,7 +268,7 @@ model MatchEvent {
   aPlayerLN       String?
 
   fixture Fixture @relation(fields: [fixtureId], references: [id], onDelete: Cascade)
-  @@unique([fixtureId, minuteStr, teamId, playerId, shotArea, shotType, eventLeadUp, xG, outcome])
+  @@unique([fixtureId, minuteStr, playerId, shotArea, shotType, eventLeadUp, xG, outcome])
 }
 
 model GkPerf {

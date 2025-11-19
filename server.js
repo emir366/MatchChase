@@ -1,22 +1,22 @@
 const express = require('express');
 const cors = require('cors');
-const bodyParser = require('body-parser');
+const { mapPrismaError } = require('./utils');
+
 const PORT = process.env.PORT ? Number(process.env.PORT) : 4000;
+const app = express();
 
 const nationsRouter = require('./routes/nations');
-const leagueRouter = require('./routes/league');
+const leaguesRouter = require('./routes/leagues');
 const clubsRouter = require('./routes/clubs');
 const playersRouter = require('./routes/players');
 const seasonsRouter = require('./routes/seasons');
-const transfersRouter = require('./routes/transfers');
 const fixturesRouter = require('./routes/fixtures');
-const fixtureRouter = require('./routes/fixture');
-const leagueSeasonsRouter = require('./routes/leagueseasons')
-//const clubSeasonsRouter = require('./routes/clubseasons');
+const searchRouter = require('./routes/search')
 
-const app = express();
-// replace app.use(cors());
+
 app.use(cors({ origin: true, credentials: true }));
+app.use(express.json());
+
 /*
 const allowedOrigins = [
   'http://localhost:3000',            // local dev
@@ -37,19 +37,34 @@ app.use(cors({
   credentials: true
 }));
 */
-app.use(bodyParser.json());
 
 // Mount routes
-app.use('/nations', nationsRouter);
-app.use('/api/league', leagueRouter);  
-app.use('/clubs', clubsRouter);
-app.use('/players', playersRouter);
-app.use('/seasons', seasonsRouter);
-app.use('/transfers', transfersRouter);
+app.use('/api/nations', nationsRouter);
+app.use('/api/leagues', leaguesRouter);  
+app.use('/api/clubs', clubsRouter);
+app.use('/api/players', playersRouter);
+app.use('/api/seasons', seasonsRouter);
 app.use('/api/fixtures', fixturesRouter);
-app.use('/api/fixture', fixtureRouter);
-app.use('/leagueseasons', leagueSeasonsRouter);
-//app.use('/clubseasons', clubSeasonsRouter);
+app.use('/api/search', searchRouter)
+
+
+// Global Error Handler
+app.use((err, req, res, next) => {
+  console.error('Server Error:', err);
+
+  // 1. Check if it's a Prisma Error
+  const prismaError = mapPrismaError(err);
+  if (prismaError) {
+    return res.status(prismaError.status).json(prismaError.body);
+  }
+
+  // 2. Handle generic errors
+  const statusCode = res.statusCode === 200 ? 500 : res.statusCode;
+  res.status(statusCode).json({
+    error: err.message || 'Internal Server Error',
+    stack: process.env.NODE_ENV === 'production' ? null : err.stack,
+  });
+});
 
 app.listen(PORT, () => {
   console.log(`Server listening on port ${PORT}`);
