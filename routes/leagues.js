@@ -6,9 +6,17 @@ const { asyncHandler } = require('../utils');
 // Get all leagues (optional filter ?nationId=1)
 router.get('/', asyncHandler(async (req, res) => {
   const { nationId } = req.query;
+  
   const leagues = await prisma.league.findMany({
     where: nationId ? { nationId: parseInt(nationId) } : undefined,
-    include: { nation: true },
+    include: { 
+      nation: true,
+      leagueSeasons: {
+        include: {
+          season: true // Vital for frontend to identify the "latest" season
+        }
+      }
+    },
     orderBy: { name: 'asc' }
   });
   res.json(leagues);

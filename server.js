@@ -9,7 +9,6 @@ const nationsRouter = require('./routes/nations');
 const leaguesRouter = require('./routes/leagues');
 const clubsRouter = require('./routes/clubs');
 const playersRouter = require('./routes/players');
-const seasonsRouter = require('./routes/seasons');
 const fixturesRouter = require('./routes/fixtures');
 const searchRouter = require('./routes/search')
 
@@ -43,7 +42,6 @@ app.use('/api/nations', nationsRouter);
 app.use('/api/leagues', leaguesRouter);  
 app.use('/api/clubs', clubsRouter);
 app.use('/api/players', playersRouter);
-app.use('/api/seasons', seasonsRouter);
 app.use('/api/fixtures', fixturesRouter);
 app.use('/api/search', searchRouter)
 
