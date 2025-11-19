@@ -3,6 +3,26 @@ const router = express.Router();
 const prisma = require('../db');
 const { asyncHandler } = require('../utils');
 
+// We use 'take: 1' inside clubSeasons to efficiently get only the latest season for the link
+router.get('/', asyncHandler(async (req, res) => {
+  const clubs = await prisma.club.findMany({
+    orderBy: { name: 'asc' },
+    include: {
+      nation: true,
+      clubSeasons: {
+        orderBy: { leagueSeason: { season: { name: 'desc' } } }, // Sort by season name (e.g. "23/24")
+        take: 1, // Only fetch the most recent one
+        include: {
+          leagueSeason: {
+            include: { season: true }
+          }
+        }
+      }
+    }
+  });
+  res.json(clubs);
+}));
+
 // Get a Club's detailed profile
 router.get('/:id', asyncHandler(async (req, res) => {
   const { id } = req.params;
@@ -11,7 +31,7 @@ router.get('/:id', asyncHandler(async (req, res) => {
     include: {
       nation: true,
       clubSeasons: {
-        orderBy: { leagueSeason: { season: { name: 'desc' } } }, // Most recent seasons first
+        orderBy: { leagueSeason: { season: { name: 'desc' } } }, 
         take: 5,
         include: {
           leagueSeason: {
@@ -29,7 +49,7 @@ router.get('/:id', asyncHandler(async (req, res) => {
 
 // Get a Club's Squad for a specific Season context (ClubSeason)
 router.get('/season/:id/squad', asyncHandler(async (req, res) => {
-  const { id } = req.params; // This is the clubSeasonId
+  const { id } = req.params; 
   const squad = await prisma.squadMembership.findMany({
     where: { clubSeasonId: parseInt(id) },
     include: {
