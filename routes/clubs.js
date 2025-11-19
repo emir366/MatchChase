@@ -94,4 +94,48 @@ router.get('/season/:id/squad', asyncHandler(async (req, res) => {
   res.json(squad);
 }));
 
+// [NEW] Get Fixtures (Home + Away)
+router.get('/season/:id/fixtures', asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const clubSeasonId = parseInt(id);
+
+  const fixtures = await prisma.fixture.findMany({
+    where: {
+      OR: [
+        { homeClubSeasonId: clubSeasonId },
+        { awayClubSeasonId: clubSeasonId }
+      ]
+    },
+    orderBy: { date: 'asc' },
+    include: {
+      homeClubSeason: { include: { club: true } },
+      awayClubSeason: { include: { club: true } },
+      matchWeek: true
+    }
+  });
+  res.json(fixtures);
+}));
+
+// [NEW] Get Transfers (In + Out)
+router.get('/season/:id/transfers', asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const clubSeasonId = parseInt(id);
+
+  const transfers = await prisma.transfer.findMany({
+    where: {
+      OR: [
+        { fromClubSeasonId: clubSeasonId },
+        { toClubSeasonId: clubSeasonId }
+      ]
+    },
+    orderBy: { date: 'desc' },
+    include: {
+      player: { include: { nationality: true } },
+      fromClubSeason: { include: { club: true } },
+      toClubSeason: { include: { club: true } }
+    }
+  });
+  res.json(transfers);
+}));
+
 module.exports = router;
